@@ -3,7 +3,9 @@ class CFG():
     img_data = 'EuroSAT/'
     captions_path_train = 'EuroSAT/test.csv'
     captions_path_val = 'EuroSAT/validation.csv'
+    captions_path_test = 'EuroSAT/test.csv'
     size = 224
+    model_path = 'models/'
     
 class ExpertModelImgCFG():
     model = 'resnet18'
@@ -15,7 +17,7 @@ class TargetModelImgCFG():
     model = 'resnet50'
     pretrained = True
     trainable = True
-    image_embedding = 2048
+    image_embedding = 512
     
 class TextEncCFG():
     model = 'distilbert-base-uncased'
@@ -44,5 +46,5 @@ class TrainingCFG():
     weight_decay = 1e-3
     patience = 1
     factor = 0.8
-    epochs = 4
+    epochs = 8
     device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")

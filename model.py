@@ -90,10 +90,11 @@ class CLIPModel(nn.Module):
         text_embeddings = self.text_projection(text_features)
         # Calculating the Loss
         logits = (text_embeddings @ image_embeddings.T) / self.temperature
+        # logits = (image_embeddings.T @ text_embeddings) / self.temperature
         images_similarity = image_embeddings @ image_embeddings.T
         texts_similarity = text_embeddings @ text_embeddings.T
         targets = F.softmax(
-            (images_similarity + texts_similarity) / 2 * self.temperature, dim=-1
+            (images_similarity + texts_similarity) /  self.temperature, dim=-1
         )
         texts_loss = cross_entropy(logits, targets, reduction='none')
         images_loss = cross_entropy(logits.T, targets.T, reduction='none')
