@@ -4,7 +4,7 @@ import asyncio
 import torch
 import pandas as pd
 from tqdm import tqdm
-from power_usage import initialize_nvml, get_power_usage, shutdown_nvml
+# from power_usage import initialize_nvml, get_power_usage, shutdown_nvml
 class AvgMeter:
     def __init__(self, name="Metric"):
         self.name = name
@@ -90,3 +90,4 @@ def valid_epoch(model, valid_loader):
 
         tqdm_object.set_postfix(valid_loss=loss_meter.avg)
     return loss_meter
+

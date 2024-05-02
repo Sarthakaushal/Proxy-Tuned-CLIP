@@ -9,12 +9,19 @@ import numpy as np
 import torch
 import itertools
 from tqdm import tqdm
-
-
+from power_usage import get_gpu_power
+import threading
 
 def main():
+    exit_flag = threading.Event()
+    
     status =1 # 1: for training expert and anti-expert model; 2 for training target model
     train_df, valid_df, _ = make_train_valid_dfs()
+    
+    pow_usage = []
+    daemon_thread = threading.Thread(target=get_gpu_power, args=(exit_flag, pow_usage), daemon=True)
+    daemon_thread.start()
+
     tokenizer = DistilBertTokenizer.from_pretrained(TextEncCFG.tokenizer)
     train_loader = build_loaders(train_df, tokenizer, mode="train")
     valid_loader = build_loaders(valid_df, tokenizer, mode="valid")
@@ -23,7 +30,7 @@ def main():
         CFG = ExpertModelImgCFG
     else:
         CFG = TargetModelImgCFG
-    print(f'#> Training the CLIP Model with:-\n\t-- Img Enc : {CFG.model} -- Img Enc : {TextEncCFG.model}')
+    # print(f"#> Training the CLIP Model with:-\n\t-- Img Enc : {CFG.model} -- Img Enc : {TextEncCFG.model}")
     model = CLIPModel(image_embedding=CFG.image_embedding).to(TrainingCFG.device)
     
     params = [
@@ -38,10 +45,12 @@ def main():
             "weight_decay": TrainingCFG.weight_decay}
     ]
     if CFG == TargetModelImgCFG:
-        torch.save(model.state_dict(), f"{cfg.model_path}base_target_model_{CFG.model}.pt")
+        torch.save(model.state_dict(), "{}base_target_model_{}.pt".format(
+            cfg.model_path, CFG.model))
         print("Saved Target Model!")
     else:
-        torch.save(model.state_dict(), f"{cfg.model_path}anti-expert_{CFG.model}.pt")
+        torch.save(model.state_dict(), "{}anti-expert_{}.pt".format(
+            cfg.model_path, CFG.model))
         print("Saved Anti-expert Model!")
     
     optimizer = torch.optim.AdamW(params, weight_decay=0.)
@@ -56,9 +65,9 @@ def main():
     val_train_loss_dist = [100]
     trainable = True
     epoch = 0
-    pow_usage = []
+    
     while(trainable and epoch<=TrainingCFG.epochs):
-        print(f"Epoch: {epoch + 1}")
+        print("Epoch: {}".format(epoch + 1))
         model.train()
         train_loss, pow_usage = train_epoch(model, train_loader, 
                                 optimizer, lr_scheduler, step, pow_usage)
@@ -72,14 +81,16 @@ def main():
         
         if valid_loss.avg < best_loss:
             best_loss = valid_loss.avg
-            torch.save(model.state_dict(), f"{cfg.model_path}tuned_CLIP_{CFG.model}_{TrainingCFG.epochs}.pt")
+            torch.save(model.state_dict(), "{}tuned_CLIP_{}_{}.pt".format(cfg.model_path, CFG.model,TrainingCFG.epochs ))
             print("Saved Best Model!")
         delta = train_loss.avg - valid_loss.avg
         if delta <val_train_loss_dist[-1]*.04:
-            print(f"Delta = {delta} threshold = {val_train_loss_dist[-1]*.04}")
+            print("Delta = {} threshold = {}".format(delta, val_train_loss_dist[-1]*.04))
             val_train_loss_dist.append(delta)
         lr_scheduler.step(valid_loss.avg)
         epoch+=1
-
+    exit_flag.set()
+    daemon_thread.join()
+    print(pow_usage)
 if __name__ == "__main__":
     main()

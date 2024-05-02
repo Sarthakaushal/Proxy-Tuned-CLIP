@@ -9,13 +9,13 @@ class CFG():
     
 class ExpertModelImgCFG():
     model = 'resnet18'
-    pretrained = True
+    pretrained = False
     trainable = True
     image_embedding = 512
 
 class TargetModelImgCFG():
     model = 'resnet50'
-    pretrained = True
+    pretrained = False
     trainable = True
     image_embedding = 512
     
@@ -47,4 +47,5 @@ class TrainingCFG():
     patience = 1
     factor = 0.8
     epochs = 8
-    device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
+    device_num = 4
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
